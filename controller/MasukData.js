@@ -1,5 +1,6 @@
 import MasukData from "../models/MasukDataModel.js";
 import path from "path";
+import { promisify } from "util";
 
 export const getMasukData = async (req, res) => {
   try {
@@ -23,100 +24,84 @@ export const getMasukDatabyId = async (req, res) => {
 };
 
 export const createMasukData = async (req, res) => {
-  const {
-    bagian,
-    plat,
-    km_awal,
-    km_akhir,
-    selisih_km,
-    jumlah_cc,
-    jenis_bensin,
-    pembayaran,
-    harga_disetujui,
-    keterangan,
-    validasi,
-  } = req.body;
+  if (!req.files || Object.keys(req.files).length === 0)
+    return res.status(400).json({ msg: "no File UPLOAD" });
+  const bagian = req.body.bagian;
+  const plat = req.body.plat;
+  const km_awal = req.body.km_awal;
+  const km_akhir = req.body.km_akhir;
+  const selisih_km = req.body.selisih_km;
+  const jumlah_cc = req.body.jumlah_cc;
+  const jenis_bensin = req.body.jenis_bensin;
+  const pembayaran = req.body.pembayaran;
+  const harga_disetujui = req.body.harga_disetujui;
+  const keterangan = req.body.keterangan;
+  const validasi = req.body.validasi;
+  const foto_nota = req.files.foto_nota;
+  const foto_km_awal = req.files.foto_km_awal;
+  const foto_km_akhir = req.files.foto_km_akhir;
 
-  const allowedTypes = [".png", ".jpg", ".jpeg", ".pdf", ".docx"];
-  const maxFileSize = 5 * 1024 * 1024; // 5MB
+  const fileSize1 = foto_nota.data.length;
+  const fileSize2 = foto_km_awal.data.length;
+  const fileSize3 = foto_km_akhir.data.length;
 
-  const { foto_km_awal, foto_km_akhir, foto_nota } = req.files;
+  const ext1 = path.extname(foto_nota.name);
+  const ext2 = path.extname(foto_km_awal.name);
+  const ext3 = path.extname(foto_km_akhir.name);
 
-  // Check if files are present
-  if (!foto_km_awal || !foto_km_akhir || !foto_nota) {
-    return res.status(422).json({
-      msg: "All three files (foto_km_awal, foto_km_akhir, foto_nota) are required.",
-    });
-  }
+  const file1 = foto_nota.md5 + ext1;
+  const file2 = foto_km_awal.md5 + ext2;
+  const file3 = foto_km_akhir.md5 + ext3;
 
-  // Validate file types and sizes
-  const files = [foto_km_awal, foto_km_akhir, foto_nota];
-  for (let file of files) {
-    const ext = path.extname(file.name).toLowerCase();
-    if (!allowedTypes.includes(ext)) {
-      return res.status(422).json({ msg: "Invalid file format" });
-    }
-    if (file.size > maxFileSize) {
-      return res.status(422).json({ msg: "File cannot exceed 5MB" });
-    }
-  }
+  const url_nota = `${req.protocol}://${req.get("host")}/img/${file1}`;
+  const url_km_awal = `${req.protocol}://${req.get("host")}/img/${file2}`;
+  const url_km_akhir = `${req.protocol}://${req.get("host")}/img/${file3}`;
 
-  const fileAwal = `${foto_km_awal.md5}${path.extname(foto_km_awal.name)}`;
-  const fileAkhir = `${foto_km_akhir.md5}${path.extname(foto_km_akhir.name)}`;
-  const fileNota = `${foto_nota.md5}${path.extname(foto_nota.name)}`;
+  const allowedType = [".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx"];
 
-  const url_km_awal = `${req.protocol}://${req.get(
-    "host"
-  )}/public/img/${fileAwal}`;
-  const url_km_akhir = `${req.protocol}://${req.get(
-    "host"
-  )}/public/img/${fileAkhir}`;
-  const url_nota = `${req.protocol}://${req.get(
-    "host"
-  )}/public/img/${fileNota}`;
-
-  // Move files to the public folder
-  foto_km_awal.mv(`./public/img/${fileAwal}`, async (err) => {
-    if (err) return res.status(500).json({ msg: err.message });
-  });
-  foto_km_akhir.mv(`./public/img/${fileAkhir}`, async (err) => {
-    if (err) return res.status(500).json({ msg: err.message });
-  });
-  foto_nota.mv(`./public/img/${fileNota}`, async (err) => {
-    if (err) return res.status(500).json({ msg: err.message });
-  });
-
-  // Save to the database
+  if (
+    !allowedType.includes(ext1.toLowerCase()) ||
+    !allowedType.includes(ext2.toLowerCase()) ||
+    !allowedType.includes(ext3.toLowerCase())
+  )
+    return res.status(422).json({ msg: "invalid images" });
+  if (fileSize1 > 5000000 || fileSize2 > 5000000 || fileSize3 > 5000000)
+    return res.status(422).json({ msg: " file harus kurang dari 5 MB" });
   try {
-    // Move files to the public folder using Promises
-    await foto_km_awal.mv(`./public/img/${fileAwal}`);
-    await foto_km_akhir.mv(`./public/img/${fileAkhir}`);
-    await foto_nota.mv(`./public/img/${fileNota}`);
+    await Promise.all([
+      promisify(foto_nota.mv)(`./public/img/${file1}`),
+      promisify(foto_km_awal.mv)(`./public/img/${file2}`),
+      promisify(foto_km_akhir.mv)(`./public/img/${file3}`),
+    ]);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ msg: err.message });
+  }
 
-    // Save to the database after files are successfully uploaded
+  try {
     await MasukData.create({
-      bagian,
-      plat,
-      km_awal,
-      km_akhir,
-      selisih_km,
-      jumlah_cc,
-      jenis_bensin,
-      pembayaran,
-      foto_km_awal: fileAwal,
-      url_km_awal,
-      foto_km_akhir: fileAkhir,
-      url_km_akhir,
-      foto_nota: fileNota,
-      url_nota,
-      harga_disetujui,
-      keterangan,
-      validasi,
+      bagian: bagian,
+      plat: plat,
+      km_awal: km_awal,
+      km_akhir: km_akhir,
+      selisih_km: km_akhir - km_awal,
+      jumlah_cc: jumlah_cc,
+      jenis_bensin: jenis_bensin,
+      pembayaran: pembayaran,
+      harga_disetujui: harga_disetujui,
+      validasi: validasi,
+      keterangan: keterangan,
+      foto_nota: file1,
+      foto_km_awal: file2,
+      foto_km_akhir: file3,
+      url_nota: url_nota,
+      url_km_awal: url_km_awal,
+      url_km_akhir: url_km_akhir,
     });
-
-    res.status(200).json({ msg: "Files successfully uploaded" });
+    res.status(201).json({ message: "Data berhasil ditambahkan" });
   } catch (error) {
-    res.status(500).json({ msg: error.message });
+    console.log(error);
+    res.status(400).json({ message: error.message });
   }
 };
 

@@ -21,7 +21,7 @@ const store = new sessionStore({
 //   await db.sync();
 // })();
 
-// store.sync();
+store.sync();
 
 app.use(
   session({

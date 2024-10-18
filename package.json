@@ -9,7 +9,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "argon2": "^0.28.7",
     "connect-session-sequelize": "^7.1.7",
@@ -20,5 +19,7 @@
     "express-session": "^1.18.0",
     "mysql2": "^2.3.3",
     "sequelize": "^6.37.3"
-  }
+  },
+  "devDependencies": {},
+  "description": ""
 }

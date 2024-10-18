@@ -35,10 +35,6 @@ const MasukData = db.define(
     },
     selisih_km: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      validate: {
-        notEmpty: true,
-      },
     },
     jumlah_cc: {
       type: DataTypes.INTEGER,
@@ -105,24 +101,12 @@ const MasukData = db.define(
     },
     harga_disetujui: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      validate: {
-        notEmpty: true,
-      },
     },
     keterangan: {
       type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: true,
-      },
     },
     validasi: {
       type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: true,
-      },
     },
   },
   {
